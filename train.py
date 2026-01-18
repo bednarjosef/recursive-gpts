@@ -2,7 +2,8 @@ import random
 import torch, time
 
 from dataclasses import dataclass
-from gpt_model import GPT
+# from gpt_model import GPT
+from recursive_model import GPT
 from create_dataset import PAD_TOKEN, vocab_size, decode, encode, itos, BLOCK_SIZE
 
 
@@ -21,7 +22,7 @@ def evaluate(model, val_data, max_samples=50):
         x, y = dataset['val']
         x, y = x.to(device), y.to(device)
         with torch.autocast(device_type=device, dtype=torch.bfloat16):
-            logits, loss = model(x, y, True)
+            logits, loss = model(x, y)
 
         loss = loss / grad_accum_steps
         loss_accum += loss.detach()
@@ -76,8 +77,8 @@ class GPTConfig:
     vocab_size: int = vocab_size
     n_embd: int = 32
     n_head: int = 4
-    n_layer: int = 2
-    n_recursion: int = 2
+    n_layer: int = 1
+    n_recursion: int = 1
     steps: int = 1000
     effective_depth: int = n_layer * n_recursion
     bias: bool = False
@@ -136,7 +137,7 @@ for step in range(GPTConfig.steps):
         x, y = dataset['train']
         x, y = x.to(device), y.to(device)
         with torch.autocast(device_type=device, dtype=torch.bfloat16):
-            logits, loss = model(x, y, True)
+            logits, loss = model(x, y)
 
         loss = loss / grad_accum_steps
         loss_accum += loss.detach()
