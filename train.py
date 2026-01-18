@@ -3,7 +3,7 @@ import torch, time
 
 from dataclasses import dataclass
 from gpt_model import GPT
-from create_dataset import vocab_size, decode, encode, itos, BLOCK_SIZE
+from create_dataset import PAD_TOKEN, vocab_size, decode, encode, itos, BLOCK_SIZE
 
 
 def get_ground_truth_string(y_row, itos):
@@ -45,6 +45,7 @@ def evaluate(model, val_data, max_samples=50):
             y_row = Y_val[i]
             valid_indices = y_row[y_row != -100].tolist()
             truth_str = decode(valid_indices) # e.g. "10~"
+            truth_str = truth_str.replace(PAD_TOKEN, '')
         
             completion = model.generate(prompt, max_new_tokens=10)[0]
             completion_str = decode(completion.tolist())

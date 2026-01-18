@@ -17,7 +17,7 @@ PAD_TOKEN_ID = stoi[PAD_TOKEN]
 MAX_DIGITS = 2
 BLOCK_SIZE = (3 * MAX_DIGITS) + 4
 MAX_ROWS = 10_000
-VAL_SPLIT = 0.2
+VAL_SPLIT = 0.02
 INCLUDE_REVERSE = True
 filepath = 'addition_dataset_10k_2dig.pt'
 
