@@ -133,19 +133,12 @@ class GPT(nn.Module):
         prompt_embeddings = self.token_embedding_table(idx)
         x = prompt_embeddings
 
-        with torch.no_grad():
-            for _ in range(self.config.n_recursion - 1):
-                for block in self.transformer_blocks:
-                    if prompt_injection:
-                        x = block(prompt_embeddings + x)
-                    else:
-                        x = block(x)
-
-        for block in self.transformer_blocks:
-            if prompt_injection:
-                x = block(prompt_embeddings + x)
-            else:
-                x = block(x)
+        for _ in range(self.config.n_recursion):
+            for block in self.transformer_blocks:
+                if prompt_injection:
+                    x = block(prompt_embeddings + x)
+                else:
+                    x = block(x)
 
         # LayerNorm and classifier
         x = self.ln_f(x)

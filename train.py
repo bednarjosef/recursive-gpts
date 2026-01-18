@@ -21,7 +21,7 @@ def evaluate(model, val_data, max_samples=50):
         x, y = dataset['val']
         x, y = x.to(device), y.to(device)
         with torch.autocast(device_type=device, dtype=torch.bfloat16):
-            logits, loss = model(x, y)
+            logits, loss = model(x, y, True)
 
         loss = loss / grad_accum_steps
         loss_accum += loss.detach()
@@ -74,7 +74,7 @@ def evaluate(model, val_data, max_samples=50):
 class GPTConfig:
     block_size: int = BLOCK_SIZE
     vocab_size: int = vocab_size
-    n_embd: int = 128
+    n_embd: int = 32
     n_head: int = 4
     n_layer: int = 2
     n_recursion: int = 2
@@ -82,7 +82,7 @@ class GPTConfig:
     effective_depth: int = n_layer * n_recursion
     bias: bool = False
     weight_decay: float = 0.2
-    lr: float = 1e-3
+    lr: float = 3e-4
     dataset: str = 'addition_dataset_10k_2dig.pt'
 
 
@@ -136,7 +136,7 @@ for step in range(GPTConfig.steps):
         x, y = dataset['train']
         x, y = x.to(device), y.to(device)
         with torch.autocast(device_type=device, dtype=torch.bfloat16):
-            logits, loss = model(x, y)
+            logits, loss = model(x, y, True)
 
         loss = loss / grad_accum_steps
         loss_accum += loss.detach()
@@ -156,7 +156,7 @@ for step in range(GPTConfig.steps):
     tokens_processed = total_batch_size * GPTConfig.block_size
     tokens_per_sec = tokens_processed / dt
 
-    if ((step+1) % 10 == 0) or (step+1) == GPTConfig.steps:
+    if ((step+1) % 100 == 0) or (step+1) == GPTConfig.steps:
         val_loss, val_acc = evaluate(model, dataset['val'])
         print(f"step {step+1:4d} | t/loss: {loss_accum.item():.4f} | val/loss: {val_loss:.4f} | val/acc: {val_acc:.2f} | lr {lr:.4e} | norm: {norm:.4f} | dt: {dt*1000:.2f}ms | tok/sec: {tokens_per_sec:.2f}")
 
