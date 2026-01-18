@@ -108,7 +108,7 @@ params = sum(p.numel() for p in model.parameters())
 print(f'Model has {params:,} parameters.')
 
 compiled = False
-if device == 'cuda':
+if device == 'cuda' and False:
     print(f'Compiling model...')
     model = torch.compile(model)
     compiled = True
