@@ -14,10 +14,19 @@ def get_ground_truth_string(y_row, itos):
 def evaluate(model, val_data, max_samples=50):
     model.eval()
     X_val, Y_val = val_data
+
+    loss_accum = 0.0
+    for micro_step in range(grad_accum_steps):
+        # x, y = train_loader.next_batch()
+        x, y = dataset['val']
+        x, y = x.to(device), y.to(device)
+        with torch.autocast(device_type=device, dtype=torch.bfloat16):
+            logits, loss = model(x, y)
+
+        loss = loss / grad_accum_steps
+        loss_accum += loss.detach()
     
     indices = list(range(len(X_val)))
-    if max_samples and max_samples < len(indices):
-        indices = random.sample(indices, max_samples)
         
     num_correct = 0
     total = 0
@@ -57,17 +66,17 @@ def evaluate(model, val_data, max_samples=50):
     acc = num_correct / total
     # print(f"Validation Accuracy: {acc*100:.2f}% ({num_correct}/{total})")
     model.train()
-    return acc
+    return loss_accum.item(), acc
 
 
 @dataclass
 class GPTConfig:
     block_size: int = BLOCK_SIZE
     vocab_size: int = vocab_size
-    n_embd: int = 32
+    n_embd: int = 128
     n_head: int = 4
-    n_layer: int = 1
-    n_recursion: int = 4
+    n_layer: int = 2
+    n_recursion: int = 2
     steps: int = 1000
     effective_depth: int = n_layer * n_recursion
     bias: bool = False
@@ -147,8 +156,8 @@ for step in range(GPTConfig.steps):
     tokens_per_sec = tokens_processed / dt
 
     if ((step+1) % 10 == 0) or (step+1) == GPTConfig.steps:
-        val_acc = evaluate(model, dataset['val'])
-        print(f"step {step+1:4d} | t/loss: {loss_accum.item():.6f} | val/acc: {val_acc:.2f} | lr {lr:.4e} | norm: {norm:.4f} | dt: {dt*1000:.2f}ms | tok/sec: {tokens_per_sec:.2f}")
+        val_loss, val_acc = evaluate(model, dataset['val'])
+        print(f"step {step+1:4d} | t/loss: {loss_accum.item():.4f} | val/loss: {val_loss:.4f} | val/acc: {val_acc:.2f} | lr {lr:.4e} | norm: {norm:.4f} | dt: {dt*1000:.2f}ms | tok/sec: {tokens_per_sec:.2f}")
 
 
 # code inference, eval, grad_accum
