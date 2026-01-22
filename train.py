@@ -82,6 +82,8 @@ class GPTConfig:
     steps: int = 1000
     effective_depth: int = n_layer * n_recursion
     bias: bool = False
+    halt_loss_weight: float = 1
+    num_register_tokens: int = 0
     weight_decay: float = 0.2
     lr: float = 3e-4
     dataset: str = 'addition_dataset_10k_2dig.pt'
