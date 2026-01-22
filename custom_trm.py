@@ -28,6 +28,7 @@ class TinyRecursiveModel(Module):
         dim,
         num_tokens,
         network: Module,
+        pred_head_network: Module = None,
         num_refinement_blocks = 3,   # T in paper
         num_latent_refinements = 6,  # n in paper - 1 output refinement per N latent refinements
         halt_loss_weight = 1.,
@@ -46,16 +47,20 @@ class TinyRecursiveModel(Module):
         self.num_refinement_blocks = num_refinement_blocks
 
         # register tokens for the self attend version
-
         self.register_tokens = nn.Parameter(torch.randn(num_register_tokens, dim) * 1e-2)
+
+        # if None use identity (pass-through)
+        self.pred_head_network = default(pred_head_network, nn.Identity())
+
+        self.to_logits = nn.Linear(dim, num_tokens, bias=False)
 
         # prediction heads
 
-        self.to_pred = nn.Linear(dim, num_tokens, bias = False)
+        # self.to_pred = nn.Linear(dim, num_tokens, bias=False)
 
         self.to_halt_pred = nn.Sequential(
             Reduce('b n d -> b d', 'mean'),
-            nn.Linear(dim, 1, bias = False),
+            nn.Linear(dim, 1, bias=False),
             Rearrange('... 1 -> ...')
         )
 
@@ -64,6 +69,10 @@ class TinyRecursiveModel(Module):
         # init
 
         nn.init.zeros_(self.to_halt_pred[1].weight)
+
+    def get_predictions(self, x):
+        x = self.pred_head_network(x)
+        return self.to_logits(x)
 
     @property
     def device(self):
@@ -160,13 +169,10 @@ class TinyRecursiveModel(Module):
             if not should_halt.any():
                 continue
 
-            # maybe remove registers
-
             registers, outputs_for_pred = unpack(outputs, packed_shape, 'b * d')
 
             # append to exited predictions
-
-            pred = self.to_pred(outputs_for_pred[should_halt])
+            pred = self.get_predictions(outputs_for_pred[should_halt])
             preds.append(pred)
 
             # append the step at which early halted
@@ -209,31 +215,25 @@ class TinyRecursiveModel(Module):
     ):
 
         inputs, packed_shape = self.embed_inputs_with_registers(seq)
-
         outputs, latents = self.deep_refinement(inputs, outputs, latents)
-
         registers, outputs_for_pred = unpack(outputs, packed_shape, 'b * d')
 
-        pred = self.to_pred(outputs_for_pred)
+        pred = self.get_predictions(outputs_for_pred)
 
         halt_logits = self.to_halt_pred(outputs)
-
         halt_prob = halt_logits.sigmoid()
 
         outputs, latents = outputs.detach(), latents.detach()
-
         return_package = (outputs, latents, pred, halt_prob)
 
         if not exists(labels):
             return return_package
 
         # calculate loss if labels passed in
-
         loss = F.cross_entropy(rearrange(pred, 'b n l -> b l n'), labels, reduction = 'none')
         loss = reduce(loss, 'b ... -> b', 'mean')
 
         is_all_correct = (pred.argmax(dim = -1) == labels).all(dim = -1)
-
         halt_loss = F.binary_cross_entropy_with_logits(halt_logits, is_all_correct.float(), reduction = 'none')
 
         # total loss and loss breakdown

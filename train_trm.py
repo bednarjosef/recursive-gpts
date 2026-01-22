@@ -50,7 +50,7 @@ model_dim = 64
 
 mixer_seq_len = (block_size - 0) + num_registers
 
-network = RecursiveTransformerBlock(
+thinking_network = RecursiveTransformerBlock(
     dim = model_dim,
     heads = 4,
     ff_mult = 4
@@ -62,14 +62,23 @@ network = RecursiveTransformerBlock(
 #     seq_len = mixer_seq_len
 # )
 
+final_pred_net = RecursiveTransformerBlock(
+    dim = model_dim,
+    heads = 4,
+    ff_mult = 4 
+)
+
+
 trm = TinyRecursiveModel(
     dim = model_dim,
     num_tokens = vocab_size,
     num_register_tokens = num_registers,
     
-    network = network
+    network = thinking_network,
+    pred_head_network=final_pred_net,
 )
 trm.to(device)
+trm = trm.compile()
 
 params = sum(p.numel() for p in trm.parameters())
 print(f"Model Parameters: {params:,}")
@@ -100,7 +109,7 @@ trainer = Trainer(
 print("\nStarting Training...")
 trainer()
 
-torch.save(trm.state_dict(), 'saved-trm-arc-agi.pt')
+torch.save(trm.state_dict(), 'saved-trm-gsm.pt')
 print("Model saved to saved-trm-gsm")
 
 # ==========================================
