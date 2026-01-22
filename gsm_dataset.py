@@ -87,7 +87,8 @@ def main():
     print(f"Train size: {len(train_raw)}")
     print(f"Val size: {len(val_raw)}")
 
-    print("Tensorizing and padding...")    
+    print("Tensorizing and padding...")
+    
     # Separate X and Y
     train_x_list = [item[0] for item in train_raw]
     train_y_list = [item[1] for item in train_raw]
@@ -96,12 +97,11 @@ def main():
     val_y_list = [item[1] for item in val_raw]
 
     # Create Tensors
-    # We pad to the max length found in the specific split to save space
-    train_x_tensor = pad_and_tensorize(train_x_list)
-    train_y_tensor = pad_and_tensorize(train_y_list)
+    train_x_tensor = pad_and_tensorize(train_x_list, max_len=MAX_PROBLEM_LENGTH)
+    train_y_tensor = pad_and_tensorize(train_y_list, max_len=MAX_PROBLEM_LENGTH)
     
-    val_x_tensor = pad_and_tensorize(val_x_list)
-    val_y_tensor = pad_and_tensorize(val_y_list)
+    val_x_tensor = pad_and_tensorize(val_x_list, max_len=MAX_PROBLEM_LENGTH)
+    val_y_tensor = pad_and_tensorize(val_y_list, max_len=MAX_PROBLEM_LENGTH)
 
     save_dict = {
         'train': (train_x_tensor, train_y_tensor),

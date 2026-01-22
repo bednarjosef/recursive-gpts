@@ -5,15 +5,15 @@ from custom_trm import TinyRecursiveModel
 from custom_mlp_mixer import MLPMixer1D
 from custom_trainer import Trainer
 
-dataset_path = 'arc_dataset.pt'
+dataset_path = 'math_dataset.pt'
 print(f"Loading dataset from {dataset_path}...")
 data = torch.load(dataset_path)
 
-vocab = data['meta']['vocab']
-vocab_size = data['meta']['vocab_size']
-block_size = data['meta']['block_size']
-itos = data['meta']['itos']
-decode = lambda l: ''.join([itos[i] for i in l])
+vocab = data['vocab']
+vocab_size = len(vocab)
+block_size = data['config']['max_prob_len_limit']
+# itos = data['meta']['itos']
+# decode = lambda l: ''.join([itos[i] for i in l])
 
 class TrainDataset(Dataset):
     def __init__(self, x_tensor, y_tensor):
