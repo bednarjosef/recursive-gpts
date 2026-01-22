@@ -3,6 +3,7 @@ from torch.utils.data import Dataset, DataLoader
 
 from custom_trm import TinyRecursiveModel
 from custom_mlp_mixer import MLPMixer1D
+from custom_transformer import RecursiveTransformerBlock
 from custom_trainer import Trainer
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -16,7 +17,6 @@ vocab_size = len(vocab)
 block_size = data['config']['max_prob_len_limit']
 
 stoi = vocab
-print(f'stoi is {stoi}')
 itos = { i:ch for ch,i in vocab.items() }
 
 PAD_TOKEN_ID = stoi.get('<PAD>', 0)
@@ -46,20 +46,28 @@ print(f"Block Size (Seq Len): {block_size}")
 print(f"Vocab Size: {vocab_size}")
 
 num_registers = 8
-model_dim = 32
+model_dim = 64
 
 mixer_seq_len = (block_size - 0) + num_registers
+
+network = RecursiveTransformerBlock(
+    dim = model_dim,
+    heads = 4,
+    ff_mult = 4
+)
+
+# network = MLPMixer1D(
+#     dim = model_dim,
+#     depth = 1,
+#     seq_len = mixer_seq_len
+# )
 
 trm = TinyRecursiveModel(
     dim = model_dim,
     num_tokens = vocab_size,
     num_register_tokens = num_registers,
     
-    network = MLPMixer1D(
-        dim = model_dim,
-        depth = 1,
-        seq_len = mixer_seq_len
-    )
+    network = network
 )
 trm.to(device)
 
