@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import torch
 from torch.nn import Module
 from torch.optim import AdamW, Optimizer
 from torch.optim.lr_scheduler import LambdaLR
@@ -10,6 +11,48 @@ from ema_pytorch import EMA
 from custom_trm import TinyRecursiveModel
 from adam_atan2_pytorch import MuonAdamAtan2
 from x_transformers import Encoder, Decoder
+
+
+def evaluate(dataloader, model, max_recurrent_steps, decode, device):
+    model.eval()
+    print(f'Evaluating...')
+    for x, y in dataloader:
+        x, y = x.to(device), y.to(device)
+        preds, exit_steps = model.predict(
+            x,
+            max_deep_refinement_steps = max_recurrent_steps, 
+            halt_prob_thres = 0.5
+        )
+        
+        if shown_examples < 5:
+            for i in range(x.size(0)):
+                if shown_examples >= 5: break
+                
+                # Decode
+                prompt_ids = x[i]
+                prompt_ids = prompt_ids[prompt_ids]  #  != pad_id
+                prompt_str = decode(prompt_ids.tolist())
+                
+                truth_ids = y[i]
+                truth_str = decode(truth_ids.tolist())
+                
+                pred_ids = preds[i]
+                pred_str = decode(pred_ids.tolist())
+                
+                print(f'Example {i+1}:')
+                print(f'Q: {prompt_str}')
+                print(f'Truth: {truth_str}')
+                print(f'Pred: {pred_str}\n')
+                
+                # status = "✅" if row_match[i] else "❌"
+                steps = exit_steps[i].item()
+                
+                print(f"Prob: {prompt_str} | Truth: {truth_str} | Pred: {pred_str} | Steps: {steps} x")
+                shown_examples += 1
+
+    model.train()
+
+
 
 def exists(v):
     return v is not None
@@ -25,6 +68,7 @@ class Trainer(Module):
         self,
         model: TinyRecursiveModel | Module,
         dataset: Dataset,
+        val_dataset: Dataset,
         optim_klass = AdamW,
         optim: Optimizer | None = None,
         learning_rate = 1e-4,
@@ -38,9 +82,15 @@ class Trainer(Module):
         ema_decay_rate = 0.999,
         switch_ema_every = 10000,           # switch ema https://arxiv.org/abs/2402.09240
         accelerate_kwargs: dict = dict(),
-        cpu = False
+        cpu = False,
+        eval_interval = 100,
+        decode = None,
+
     ):
         super().__init__()
+        self.eval_interval = eval_interval
+        self.decode = decode
+        self.val_dataloader = DataLoader(val_dataset, batch_size = self.batch_size)
 
         self.accelerator  = Accelerator(**accelerate_kwargs, cpu = cpu)
 
@@ -92,6 +142,8 @@ class Trainer(Module):
                 update_model_with_ema_every = switch_ema_every,
                 forward_method_names = ('predict',)
             )
+
+            self.ema_model.to(self.accelerator.device)
 
         # recurrent and act related variables
 
@@ -145,6 +197,9 @@ class Trainer(Module):
 
                     if is_empty(outputs):
                         break
+                
+                if global_step % self.eval_interval == 0:
+                    evaluate(self.val_dataloader, self.model, self.max_recurrent_steps, self.decode, self.accelerator.device)
                 
                 if global_step == 1 or global_step % 10 == 0:
                     row_main_loss /= self.max_recurrent_steps
