@@ -15,14 +15,22 @@ vocab = data['vocab']
 vocab_size = len(vocab)
 block_size = data['config']['max_prob_len_limit']
 
+stoi = vocab
+print(f'stoi is {stoi}')
 itos = { i:ch for ch,i in vocab.items() }
-encode = lambda s: [vocab[c] for c in s]
+
+PAD_TOKEN_ID = stoi.get('<PAD>', 0)
+EOT_TOKEN_ID = stoi.get('<EOT>', 1)
+
+encode = lambda s: [stoi[c] for c in s]
 decode = lambda l: ''.join([itos[i] for i in l])
 
 class TrainDataset(Dataset):
     def __init__(self, x_tensor, y_tensor):
         self.x = x_tensor
         self.y = y_tensor
+
+        self.y[self.y == 0] = -100
 
     def __len__(self):
         return len(self.x)

@@ -17,6 +17,10 @@ def evaluate(dataloader, model, max_recurrent_steps, decode, device):
     model.eval()
     shown_examples = 0
     print(f'Evaluating...')
+
+    PAD_ID = 0
+    
+
     for x, y in dataloader:
         x, y = x.to(device), y.to(device)
         preds, exit_steps = model.predict(
@@ -30,20 +34,20 @@ def evaluate(dataloader, model, max_recurrent_steps, decode, device):
                 if shown_examples >= 5: break
                 
                 # Decode
-                prompt_ids = x[i]
-                prompt_ids = prompt_ids[prompt_ids]  #  != pad_id
-                prompt_str = decode(prompt_ids.tolist())
+                q_ids = [t for t in x[i].tolist() if t != PAD_ID]
+                prompt_str = decode(q_ids)
                 
-                truth_ids = y[i]
-                truth_str = decode(truth_ids.tolist())
+                t_ids = [t for t in y[i].tolist() if t != -100 and t != PAD_ID]
+                truth_str = decode(t_ids)
                 
-                pred_ids = preds[i]
-                pred_str = decode(pred_ids.tolist())
+                p_ids = [t for t in preds[i].tolist() if t != PAD_ID]
+                pred_str = decode(p_ids)
                 
                 print(f'Example {i+1}:')
                 print(f'Q: {prompt_str}')
                 print(f'Truth: {truth_str}')
-                print(f'Pred: {pred_str}\n')
+                print(f'Pred: {pred_str}')
+                print(f'Steps: {exit_steps[i].item()}\n')
 
                 shown_examples += 1
 
