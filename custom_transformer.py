@@ -18,10 +18,10 @@ class FeedForward(nn.Module):
         super().__init__()
         inner_dim = int(dim * expansion_factor)
         self.net = nn.Sequential(
-            nn.Linear(dim, inner_dim),
+            nn.Linear(dim, inner_dim, bias=False),
             nn.GELU(),
             nn.Dropout(dropout),
-            nn.Linear(inner_dim, dim),
+            nn.Linear(inner_dim, dim, bias=False),
             nn.Dropout(dropout)
         )
 
@@ -62,10 +62,10 @@ class BidirectionalAttention(nn.Module):
         
         # Projection to Q, K, V
         # inner_dim is simply dim * 3 because (heads * dim_head) = dim
-        self.to_qkv = nn.Linear(dim, dim * 3, bias = False)
+        self.to_qkv = nn.Linear(dim, dim * 3, bias=False)
         
         self.to_out = nn.Sequential(
-            nn.Linear(dim, dim),
+            nn.Linear(dim, dim, bias=False),
             nn.Dropout(dropout)
         )
 
@@ -113,19 +113,21 @@ class RecursiveTransformerBlock(nn.Module):
         self.ff = FeedForward(dim, expansion_factor=ff_mult, dropout=dropout)
         
         self.ff_norm = RMSNorm(dim)
+        self.final_norm = RMSNorm(dim)
 
     def forward(self, x):
         b, n, d = x.shape
         
-        # Generate Positional Embeddings
+        # Positional Embeddings
         pos_emb = self.rotary_emb(n, x.device)
         
-        # Attention Block with internal residual
+        # Attention
         attn_out = self.attn(x, pos_emb = pos_emb)
         x = x + attn_out
         
-        # Feed Forward Block with internal residual
+        # Feed Forward
         ff_out = self.ff(self.ff_norm(x))
         x = x + ff_out
         
-        return x
+        # Normalize the output before passing it back to the recursive loop
+        return self.final_norm(x)

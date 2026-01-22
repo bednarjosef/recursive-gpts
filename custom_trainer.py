@@ -186,6 +186,7 @@ class Trainer(Module):
                     # self.accelerator.print(f'[{epoch} ({recurrent_step} / {self.max_recurrent_steps})] loss: {main_loss.mean().item():.3f} | halt loss: {halt_loss.mean().item():.3f}')
 
                     self.accelerator.backward(loss)
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
 
                     self.optim.step()
                     self.optim.zero_grad()
