@@ -78,7 +78,7 @@ trm = TinyRecursiveModel(
     pred_head_network=final_pred_net,
 )
 trm.to(device)
-trm = trm.compile()
+trm = torch.compile(trm)
 
 params = sum(p.numel() for p in trm.parameters())
 print(f"Model Parameters: {params:,}")
