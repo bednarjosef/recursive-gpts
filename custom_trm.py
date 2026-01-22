@@ -196,6 +196,8 @@ class TinyRecursiveModel(Module):
         exited_batch_indices = cat(exited_batch_indices)
         sort_indices = exited_batch_indices.argsort(dim = -1)
 
+        exited_step_indices = exited_step_indices.to(sort_indices.device)
+
         return preds[sort_indices], exited_step_indices[sort_indices]
 
     def forward(

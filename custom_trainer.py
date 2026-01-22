@@ -90,7 +90,7 @@ class Trainer(Module):
         super().__init__()
         self.eval_interval = eval_interval
         self.decode = decode
-        self.val_dataloader = DataLoader(val_dataset, batch_size = self.batch_size)
+        self.val_dataloader = DataLoader(val_dataset, batch_size)
 
         self.accelerator  = Accelerator(**accelerate_kwargs, cpu = cpu)
 

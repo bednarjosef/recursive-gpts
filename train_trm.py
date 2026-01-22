@@ -5,6 +5,8 @@ from custom_trm import TinyRecursiveModel
 from custom_mlp_mixer import MLPMixer1D
 from custom_trainer import Trainer
 
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 dataset_path = 'math_dataset.pt'
 print(f"Loading dataset from {dataset_path}...")
 data = torch.load(dataset_path)
@@ -55,6 +57,7 @@ trm = TinyRecursiveModel(
         seq_len = mixer_seq_len
     )
 )
+trm.to(device)
 
 params = sum(p.numel() for p in trm.parameters())
 print(f"Model Parameters: {params:,}")
@@ -72,10 +75,11 @@ trainer = Trainer(
     weight_decay = 0.1,
     max_recurrent_steps = 4,
     halt_prob_thres = 0.5,
-    cpu = False if torch.cuda.is_available() else True,
+    cpu = False if device == 'cuda' else True,
     accelerate_kwargs = dict(mixed_precision = 'no'),
     eval_interval = 100,
-    decode=decode,
+    decode = decode,
+    val_dataset = val_dataset,
 )
 
 # ==========================================
