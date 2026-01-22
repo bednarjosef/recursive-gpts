@@ -15,13 +15,9 @@ vocab = data['vocab']
 vocab_size = len(vocab)
 block_size = data['config']['max_prob_len_limit']
 
-stoi = { ch:i for i,ch in enumerate(vocab) }
-itos = { i:ch for i,ch in enumerate(vocab) }
-encode = lambda s: [stoi[c] for c in s]
+itos = { i:ch for ch,i in vocab.items() }
+encode = lambda s: [vocab[c] for c in s]
 decode = lambda l: ''.join([itos[i] for i in l])
-
-# itos = data['meta']['itos']
-# decode = lambda l: ''.join([itos[i] for i in l])
 
 class TrainDataset(Dataset):
     def __init__(self, x_tensor, y_tensor):
@@ -89,7 +85,7 @@ print("\nStarting Training...")
 trainer()
 
 torch.save(trm.state_dict(), 'saved-trm-arc-agi.pt')
-print("Model saved to saved-trm-arc-agi")
+print("Model saved to saved-trm-gsm")
 
 # ==========================================
 # 5. Evaluation / Inference

@@ -4,7 +4,6 @@ from datasets import load_dataset
 from tqdm import tqdm
 import string
 
-
 DATASET_NAME = "nvidia/OpenMathInstruct-2"
 SPLIT = "train_5M"
 OUTPUT_FILENAME = "math_dataset.pt"

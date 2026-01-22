@@ -15,6 +15,7 @@ from x_transformers import Encoder, Decoder
 
 def evaluate(dataloader, model, max_recurrent_steps, decode, device):
     model.eval()
+    shown_examples = 0
     print(f'Evaluating...')
     for x, y in dataloader:
         x, y = x.to(device), y.to(device)
@@ -43,11 +44,7 @@ def evaluate(dataloader, model, max_recurrent_steps, decode, device):
                 print(f'Q: {prompt_str}')
                 print(f'Truth: {truth_str}')
                 print(f'Pred: {pred_str}\n')
-                
-                # status = "✅" if row_match[i] else "❌"
-                steps = exit_steps[i].item()
-                
-                print(f"Prob: {prompt_str} | Truth: {truth_str} | Pred: {pred_str} | Steps: {steps} x")
+
                 shown_examples += 1
 
     model.train()
