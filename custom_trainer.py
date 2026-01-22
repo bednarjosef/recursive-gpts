@@ -19,7 +19,14 @@ def evaluate(dataloader, model, max_recurrent_steps, decode, device):
     print(f'Evaluating...')
 
     PAD_ID = 0
-    
+    EOT_ID = 1  # Assuming EOT is 1 based on your vocab setup
+
+    def truncate_at_eot(token_list):
+        """Cuts the list off immediately after the first EOT token."""
+        if EOT_ID in token_list:
+            idx = token_list.index(EOT_ID)
+            return token_list[:idx]
+        return token_list
 
     for x, y in dataloader:
         x, y = x.to(device), y.to(device)
@@ -38,9 +45,12 @@ def evaluate(dataloader, model, max_recurrent_steps, decode, device):
                 prompt_str = decode(q_ids)
                 
                 t_ids = [t for t in y[i].tolist() if t != -100 and t != PAD_ID]
+                t_ids = truncate_at_eot(t_ids)
                 truth_str = decode(t_ids)
                 
-                p_ids = [t for t in preds[i].tolist() if t != PAD_ID]
+                p_ids = preds[i].tolist()
+                p_ids = truncate_at_eot(p_ids)
+                p_ids = [t for t in p_ids if t != PAD_ID]
                 pred_str = decode(p_ids)
                 
                 print(f'Example {i+1}:')
